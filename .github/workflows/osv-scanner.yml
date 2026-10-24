@@ -14,8 +14,24 @@ permissions:
 
 jobs:
   osv-scan:
-    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@b1d267aea5211fa648d9d442fa64b90dbdcbdd36 # v2.7.0
-    with:
-      scan-args: |-
-        -r
-        ./
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Step A: Setup JDK/Runtime
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      # Step B: Generate aggregate SBOM with all transitive deps
+      - name: Generate CycloneDX SBOM
+        run: ./mvnw org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom
+
+      # Step C: Scan the SBOM
+      - name: Run OSV-Scanner
+        uses: google/osv-scanner-action/osv-scanner-action@v1.9.0
+        with:
+          scan-args: |-
+            --sbom=target/bom.json
